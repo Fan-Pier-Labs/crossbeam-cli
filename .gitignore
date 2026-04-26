@@ -1,2 +1,8 @@
 .playright-cli/
 .playwright-cli/
+.claude/
+node_modules/
+.env
+.env.local
+*.log
+bun.lockb
