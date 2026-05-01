@@ -327,11 +327,22 @@ const BOOLEAN_FLAGS = new Set([
   "fresh-login",
   "inactive",
   "include-deleted",
+  "account-mapping",
+  "all-partners",
 ]);
 const VALUE_FLAGS = new Set([
   "user", "u", "username",
   "pass", "p", "password",
   "org",
+  "partner", "partners",
+  "our-population", "our-populations",
+  "partner-population", "partner-populations",
+  "our-segment", "our-segments",
+  "partner-segment", "partner-segments",
+  "type",
+  "limit",
+  "page",
+  "tag", "tags",
 ]);
 
 function parseArgs(args: string[]): ParsedArgs {
@@ -509,14 +520,24 @@ const commands: Cmd[] = [
   },
   {
     name: "partners",
-    args: "list | get <id> | users <id> | tags <id> | team-access <id> | pending | suggestions | overlap-counts | favorites",
+    args: "list | get <id> | users <id> | tags <id> | team-access <id> | pending | suggestions | overlap-counts | overlap-matrix <id> | favorites",
     describe: "Partner-related queries",
     run: async (c, _me, args) => {
       const sub = args.positional[1];
       if (!sub || sub === "list") {
-        const data = await c.get<any>("/v0.2/partners");
+        const [data, counts, partnerPops] = await Promise.all([
+          c.get<any>("/v0.2/partners"),
+          c.get<any>("/v0.1/partners/global/overlap-counts").catch(() => null),
+          c.get<any>("/v0.1/partner-populations").catch(() => null),
+        ]);
         const items = data.items ?? data;
-        output(args, data, () =>
+        const byPartner: Record<number, any> = {};
+        for (const r of counts?.overlap_usage?.by_partner ?? [])
+          byPartner[r.partner_organization_id] = r;
+        const popsByOrg: Record<number, number> = {};
+        for (const p of partnerPops?.items ?? partnerPops ?? [])
+          popsByOrg[p.organization_id] = (popsByOrg[p.organization_id] ?? 0) + 1;
+        output(args, { ...data, items }, () =>
           table(
             items.map((p: any) => ({
               id: p.id,
@@ -524,8 +545,11 @@ const commands: Cmd[] = [
               name: p.name,
               domain: p.domain ?? p.clearbit_domain ?? "",
               partnered: p.partnership_created_at?.slice(0, 10) ?? "",
+              shared_pops: popsByOrg[p.id] ?? 0,
+              overlaps: byPartner[p.id]?.total_overlap_count ?? "",
+              partner_score: p.metrics?.partner_score ?? "",
             })),
-            ["id", "uuid", "name", "domain", "partnered"],
+            ["id", "uuid", "name", "domain", "partnered", "shared_pops", "overlaps", "partner_score"],
           ),
         );
         return;
@@ -630,6 +654,29 @@ const commands: Cmd[] = [
       if (sub === "overlap-counts") {
         const data = await c.get<any>("/v0.1/partners/global/overlap-counts");
         output(args, data);
+        return;
+      }
+      if (sub === "overlap-matrix") {
+        const id = args.positional[2];
+        if (!id) throw new Error("partners overlap-matrix <id|uuid>");
+        const partners = await c.get<any>("/v0.2/partners");
+        const list = partners.items ?? partners;
+        const p = list.find((x: any) => String(x.id) === id || x.uuid === id);
+        if (!p) throw new Error(`No partner found with id/uuid ${id}`);
+        const data = await c.post<any>(`/v0.5/overlaps/${p.id}`, {});
+        output(args, data, () => {
+          const rows = data.items?.segment_to_segment ?? [];
+          table(
+            rows.map((r: any) => ({
+              our_segment: r.our_segment,
+              partner_segment: r.partner_segment,
+              num_matches: r.num_matches,
+              open_deals: r.open_deals_count ?? "",
+              report_allowed: r.is_report_allowed,
+            })),
+            ["our_segment", "partner_segment", "num_matches", "open_deals", "report_allowed"],
+          );
+        });
         return;
       }
       if (sub === "favorites") {
@@ -1017,6 +1064,192 @@ const commands: Cmd[] = [
         population_ids: populationIds,
       });
       output(args, data);
+    },
+  },
+  {
+    name: "report-data",
+    args: "[--partner id,id] [--our-population id,id] [--partner-population id,id] [--our-segment seg,seg] [--partner-segment seg,seg] [--type overlaps|ecosystem] [--account-mapping] [--limit N] [--page N]",
+    describe: "Record-level overlap rows (the data behind a List / report view)",
+    run: async (c, _me, args) => {
+      const splitNums = (s: string | undefined) =>
+        (s ?? "").split(",").map((x) => Number(x.trim())).filter((n) => Number.isFinite(n) && n);
+      const splitStrs = (s: string | undefined) =>
+        (s ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+      const partnerIds = splitNums(flag(args, "partner", "partners"));
+      const ourPopIds = splitNums(flag(args, "our-population", "our-populations"));
+      const partnerPopIds = splitNums(flag(args, "partner-population", "partner-populations"));
+      const ourSegments = splitStrs(flag(args, "our-segment", "our-segments"));
+      const partnerSegments = splitStrs(flag(args, "partner-segment", "partner-segments"));
+      const reportType = (flag(args, "type") || "overlaps") as "overlaps" | "ecosystem";
+      const isAccountMapping = boolFlag(args, "account-mapping");
+      const limit = Number(flag(args, "limit") ?? 50);
+      const page = Number(flag(args, "page") ?? 1);
+
+      const ourItems: any[] = [];
+      if (ourSegments.length || ourPopIds.length) {
+        for (const seg of ourSegments.length ? ourSegments : [undefined])
+          ourItems.push({
+            ...(seg ? { segment: seg } : {}),
+            ...(ourPopIds.length ? { population_ids: ourPopIds } : {}),
+          });
+      }
+      const partnerItems: any[] = [];
+      if (partnerSegments.length || partnerPopIds.length || partnerIds.length) {
+        for (const seg of partnerSegments.length ? partnerSegments : [undefined])
+          for (const oid of partnerIds.length ? partnerIds : [undefined])
+            partnerItems.push({
+              ...(seg ? { segment: seg } : {}),
+              ...(oid !== undefined ? { organization_id: oid } : {}),
+              ...(partnerPopIds.length ? { population_ids: partnerPopIds } : {}),
+            });
+      }
+
+      const body: any = {
+        consolidated_report_type: reportType,
+        ...(partnerIds.length ? { partner_organization_ids: partnerIds } : {}),
+        ...(ourItems.length
+          ? { our_segment_filters: { operator: "OR", items: ourItems } }
+          : {}),
+        ...(partnerItems.length
+          ? { partner_segment_filters: { operator: "OR", items: partnerItems } }
+          : {}),
+        ...(isAccountMapping ? { is_account_mapping: true } : {}),
+      };
+      const path = `/v0.5/report-data?page=${page}&limit=${limit}`;
+      const data = await c.post<any>(path, body);
+      output(args, data, () => {
+        const items = data.items ?? [];
+        table(
+          items.map((r: any) => ({
+            name: r.record_name ?? "",
+            website: r._xb_website ?? "",
+            our_pops: (r.population_ids ?? []).join(","),
+            partner_pops: (r.partner_population_ids ?? []).join(","),
+            partner_orgs: (r.partner_org_ids ?? []).join(","),
+            overlap_time: r.overlap_time?.slice(0, 10) ?? "",
+          })),
+          ["name", "website", "our_pops", "partner_pops", "partner_orgs", "overlap_time"],
+        );
+        if (data.pagination)
+          console.log(
+            `\nPage ${data.pagination.page}/${data.pagination.last_page} (${data.pagination.total_count} total)`,
+          );
+      });
+    },
+  },
+  {
+    name: "account-mapping",
+    args: "[--our-segment seg,seg] [--partner-segment seg,seg] [--limit N] [--page N]",
+    describe: "Account-mapping records across all partners (shortcut for report-data)",
+    run: async (c, _me, args) => {
+      const splitStrs = (s: string | undefined) =>
+        (s ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+      const ourSegments = splitStrs(flag(args, "our-segment", "our-segments")) ;
+      const partnerSegments = splitStrs(flag(args, "partner-segment", "partner-segments"));
+      const limit = Number(flag(args, "limit") ?? 50);
+      const page = Number(flag(args, "page") ?? 1);
+
+      const partners = await c.get<any>("/v0.2/partners");
+      const partnerIds = (partners.items ?? partners).map((p: any) => p.id);
+
+      const body: any = {
+        consolidated_report_type: "ecosystem",
+        partner_organization_ids: partnerIds,
+        is_account_mapping: true,
+        ...(ourSegments.length
+          ? {
+              our_segment_filters: {
+                operator: "OR",
+                items: ourSegments.map((seg) => ({ segment: seg })),
+              },
+            }
+          : {}),
+        ...(partnerSegments.length
+          ? {
+              partner_segment_filters: {
+                operator: "OR",
+                items: partnerSegments.map((seg) => ({ segment: seg })),
+              },
+            }
+          : {}),
+      };
+      const path = `/v0.5/report-data?page=${page}&limit=${limit}`;
+      const data = await c.post<any>(path, body);
+      output(args, data, () => {
+        const items = data.items ?? [];
+        table(
+          items.map((r: any) => ({
+            name: r.record_name ?? "",
+            website: r._xb_website ?? "",
+            partner_orgs: (r.partner_org_ids ?? []).join(","),
+            our_pops: (r.population_ids ?? []).join(","),
+            partner_pops: (r.partner_population_ids ?? []).join(","),
+          })),
+          ["name", "website", "partner_orgs", "our_pops", "partner_pops"],
+        );
+        if (data.pagination)
+          console.log(
+            `\nPage ${data.pagination.page}/${data.pagination.last_page} (${data.pagination.total_count} total)`,
+          );
+      });
+    },
+  },
+  {
+    name: "partner-sources",
+    args: "--partner id,id [--our-population id,id | --our-segment seg,seg] [--partner-population id,id | --partner-segment seg,seg] [--type overlaps|ecosystem]",
+    describe: "Partner data sources / fields available for a report (column metadata)",
+    run: async (c, _me, args) => {
+      const splitNums = (s: string | undefined) =>
+        (s ?? "").split(",").map((x) => Number(x.trim())).filter((n) => Number.isFinite(n) && n);
+      const splitStrs = (s: string | undefined) =>
+        (s ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+      const partnerIds = splitNums(flag(args, "partner", "partners"));
+      if (!partnerIds.length) throw new Error("partner-sources requires --partner id[,id...]");
+      const ourSegments = splitStrs(flag(args, "our-segment", "our-segments"));
+      const partnerSegments = splitStrs(flag(args, "partner-segment", "partner-segments"));
+      const ourPopIds = splitNums(flag(args, "our-population", "our-populations"));
+      const partnerPopIds = splitNums(flag(args, "partner-population", "partner-populations"));
+      const reportType = (flag(args, "type") || "overlaps") as "overlaps" | "ecosystem";
+
+      const ourItems = (ourSegments.length ? ourSegments : [undefined]).map((seg) => ({
+        ...(seg ? { segment: seg } : {}),
+        ...(ourPopIds.length ? { population_ids: ourPopIds } : {}),
+      }));
+      const partnerItems: any[] = [];
+      for (const seg of partnerSegments.length ? partnerSegments : [undefined])
+        for (const oid of partnerIds) partnerItems.push({
+          ...(seg ? { segment: seg } : {}),
+          organization_id: oid,
+          ...(partnerPopIds.length ? { population_ids: partnerPopIds } : {}),
+        });
+
+      const body: any = {
+        consolidated_report_type: reportType,
+        partner_organization_ids: partnerIds,
+        our_segment_filters: { operator: "OR", items: ourItems },
+        partner_segment_filters: { operator: "OR", items: partnerItems },
+      };
+      const data = await c.post<any>("/v0.2/reports/partner-sources", body);
+      output(args, data, () => {
+        const orgs = Array.isArray(data) ? data : [data];
+        for (const o of orgs) {
+          console.log(`\nPartner org ${o.id}:`);
+          for (const s of o.sources ?? []) {
+            console.log(`  Source ${s.id} (${s.schema}.${s.table}, mdm=${s.mdm_type})`);
+            table(
+              (s.fields ?? []).map((f: any) => ({
+                id: f.id,
+                column: f.column,
+                display: f.display_name,
+                type: f.data_type,
+                sortable: f.is_sortable,
+                filterable: f.is_filterable,
+              })),
+              ["id", "column", "display", "type", "sortable", "filterable"],
+            );
+          }
+        }
+      });
     },
   },
   {
