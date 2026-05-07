@@ -2,6 +2,10 @@
 
 CLI and Node.js client for the [Crossbeam](https://www.crossbeam.com) internal API. Log in with your existing Crossbeam credentials and read your partners, populations, overlaps, reports, account-mapping data, and more — from your terminal or from Node.js code.
 
+**Free for any Crossbeam customer.** Crossbeam normally requires upgrading to a paid tier (Connector / Supernode) to access their public API. This package uses the same endpoints the Crossbeam web app itself uses, so anyone with a Crossbeam login — including users on the free plan — can pull their own data programmatically.
+
+**Great for AI agents.** Every command supports `--json` and the programmatic `CrossbeamClient` returns plain JSON, so you can plug your partner ecosystem data into Claude Code, Cursor, or any agent framework. See the [AI agent prompt](#ai-agent-prompt) below.
+
 > ⚠️ This package talks to Crossbeam's internal `api.crossbeam.com` endpoints (the same ones the Crossbeam web app uses). It is not affiliated with or endorsed by Crossbeam, Inc. Use it for your own organization's data only, and at your own risk.
 
 ## Installation
@@ -14,12 +18,6 @@ npm install --global crossbeam-cli
 
 The CLI binary is named `crossbeam`.
 
-## License
-
-Source-available under the [Fan Pier Labs Source-Available License](./LICENSE). You may view the source and use the Software for personal, non-commercial, and educational purposes only. **Commercial use, hosted/SaaS offerings, redistribution, and competing products are prohibited without prior written permission from Fan Pier Labs.** For commercial licensing, contact ryan@fanpierlabs.com.
-
----
-
 ## CLI usage
 
 ```sh
@@ -28,7 +26,7 @@ crossbeam <command> [subcommand] [args] [options]
 
 ### Authentication
 
-Provide credentials by flag or environment variable. The first run does an Auth0 login and caches the resulting session at `~/.crossbeam/session.json` (mode `0600`) for 6 hours.
+Provide credentials by flag or environment variable. The first run logs in with your Crossbeam username + password and caches the resulting session at `~/.crossbeam/session.json` (mode `0600`) for 6 hours.
 
 ```sh
 crossbeam me --user you@example.com --pass 'your-password'
@@ -50,7 +48,7 @@ Flags:
 | `--org <id>` | Override organization id (defaults to your first authorized org) |
 | `--json` | Print raw JSON instead of a pretty table |
 | `--no-cache` | Don't read or write the session cache |
-| `--fresh-login` | Force a fresh Auth0 login this run |
+| `--fresh-login` | Force a fresh login this run (skip the cached session) |
 | `logout` | Forget cached session(s) |
 
 ### Commands
@@ -145,12 +143,63 @@ clearSession("you@x.com");   // clear one user
 
 ## How it works
 
-1. Calls `https://auth.crossbeam.com/co/authenticate` with username/password (Auth0 cross-origin auth) to obtain a `login_ticket`.
-2. Exchanges the ticket via `/authorize` to get a `cb_session_id` cookie.
+1. Logs in to `auth.crossbeam.com` with your username + password to get a session ticket.
+2. Exchanges the ticket via the standard authorize flow to obtain a `cb_session_id` cookie on `api.crossbeam.com`.
 3. Calls `https://api.crossbeam.com/v0.1/users/web-me` to discover your organization id.
-4. Subsequent calls send the cookie + an `xbeam-organization` header.
+4. Subsequent calls send the session cookie + an `xbeam-organization` header.
 
 There is no third-party HTTP library — just `fetch`, a small cookie jar, and a redirect-following helper. Cloudflare/captcha challenges are detected and abort the run.
+
+## AI agent prompt
+
+`crossbeam-cli` is built for AI coding agents (Claude Code, Cursor, Cline, Aider, Codex, etc). Every command emits JSON with `--json`, the programmatic API returns plain objects, and the `crossbeam raw <METHOD> <path>` escape hatch lets an agent hit any endpoint it discovers.
+
+Drop the prompt below into Claude Code / Cursor / your agent of choice to give it everything it needs:
+
+````md
+You have access to a CLI called `crossbeam` (npm package: `crossbeam-cli`) that
+reads data from the user's Crossbeam account. Use it to answer questions about
+their partners, ecosystem, populations, account-mapping records, and overlaps.
+
+Setup (do this once per shell):
+- Install: `npm install -g crossbeam-cli`
+- Auth: ask the user for their Crossbeam email + password and export them as
+  CROSSBEAM_USER and CROSSBEAM_PASS. Sessions are cached for 6 hours at
+  ~/.crossbeam/session.json, so you only need credentials on the first run.
+
+Always pass `--json` so output is machine-readable. Pipe through `jq` to keep
+context small. Examples:
+
+  crossbeam me --json | jq '.user.email, .authorizations[0].organization.name'
+  crossbeam partners list --json | jq '.items[] | {id, name, domain}'
+  crossbeam populations list --json | jq '.items[] | {id, name, record_count}'
+  crossbeam overlap <partner-id> --json | jq '.items | length'
+  crossbeam account-mapping --our-segment customer --limit 100 --json
+  crossbeam report-data --partner 1234,5678 --type ecosystem --limit 200 --json
+  crossbeam raw GET /v0.1/team --json    # any internal endpoint
+
+Discovery:
+- `crossbeam endpoints --json` lists every command and its arguments.
+- `crossbeam --help` prints full CLI help.
+
+Programmatic use (TypeScript / Node):
+
+  import { CrossbeamClient } from "crossbeam-cli";
+  const c = await CrossbeamClient.login({
+    username: process.env.CROSSBEAM_USER!,
+    password: process.env.CROSSBEAM_PASS!,
+  });
+  const partners = await c.listPartners();
+  const overlap  = await c.getOverlap(partners[0].id);
+
+Important rules:
+- Never print or log the user's password.
+- Prefer the cached session — do NOT pass `--fresh-login` unless you see a
+  401/403 error.
+- For large result sets, use `--limit` and `--page` for pagination.
+- If the user asks for data the existing commands don't expose, use
+  `crossbeam raw GET <path>` to call internal endpoints directly.
+````
 
 ## Development
 
@@ -164,3 +213,7 @@ npm pack --dry-run         # see what would ship
 ## Disclaimer
 
 This is an unofficial client. Crossbeam may change or block the underlying endpoints at any time. The maintainers are not responsible for breakage, account issues, or terms-of-service questions arising from your use of this package.
+
+## License
+
+Source-available under the [Fan Pier Labs Source-Available License](./LICENSE). You may view the source and use the Software for personal, non-commercial, and educational purposes only. For commercial licensing, contact ryan@fanpierlabs.com.
