@@ -18,6 +18,74 @@ npm install --global crossbeam-cli
 
 The CLI binary is named `crossbeam`.
 
+## How it works
+
+`crossbeam-cli` is a thin wrapper around Crossbeam's private HTTP API — the same endpoints the Crossbeam web app calls when you're signed in. There's no middleman service. When you run a command:
+
+1. **You provide your own Crossbeam username and password** (via flag, env var, or interactive prompt).
+2. The package logs in directly from your machine to `auth.crossbeam.com`, gets a session cookie, and stores it locally at `~/.crossbeam/session.json` (mode `0600`, valid for 6 hours).
+3. Every API call goes directly from your machine to `api.crossbeam.com` over HTTPS, sending that session cookie. The data flows back into your terminal or your Node.js process.
+
+**Your credentials and your data never leave your machine.** This package has:
+
+- No backend service of any kind. No proxy, no relay, no "phone home."
+- No telemetry, no analytics, no error reporting.
+- No third-party HTTP libraries — just Node's built-in `fetch`.
+- No remote configuration or auto-updates.
+
+You're talking straight to Crossbeam, exactly the same way your browser does. The full source is in [`src/`](./src) — read it, audit it, fork it.
+
+## AI agent prompt
+
+`crossbeam-cli` is built for AI coding agents (Claude Code, Cursor, Cline, Aider, Codex, etc). Every command emits JSON with `--json`, the programmatic API returns plain objects, and the `crossbeam raw <METHOD> <path>` escape hatch lets an agent hit any endpoint it discovers.
+
+Drop the prompt below into Claude Code / Cursor / your agent of choice to give it everything it needs:
+
+````md
+You have access to a CLI called `crossbeam` (npm package: `crossbeam-cli`) that
+reads data from the user's Crossbeam account. Use it to answer questions about
+their partners, ecosystem, populations, account-mapping records, and overlaps.
+
+Setup (do this once per shell):
+- Install: `npm install -g crossbeam-cli`
+- Auth: ask the user for their Crossbeam email + password and export them as
+  CROSSBEAM_USER and CROSSBEAM_PASS. Sessions are cached for 6 hours at
+  ~/.crossbeam/session.json, so you only need credentials on the first run.
+
+Always pass `--json` so output is machine-readable. Pipe through `jq` to keep
+context small. Examples:
+
+  crossbeam me --json | jq '.user.email, .authorizations[0].organization.name'
+  crossbeam partners list --json | jq '.items[] | {id, name, domain}'
+  crossbeam populations list --json | jq '.items[] | {id, name, record_count}'
+  crossbeam overlap <partner-id> --json | jq '.items | length'
+  crossbeam account-mapping --our-segment customer --limit 100 --json
+  crossbeam report-data --partner 1234,5678 --type ecosystem --limit 200 --json
+  crossbeam raw GET /v0.1/team --json    # any internal endpoint
+
+Discovery:
+- `crossbeam endpoints --json` lists every command and its arguments.
+- `crossbeam --help` prints full CLI help.
+
+Programmatic use (TypeScript / Node):
+
+  import { CrossbeamClient } from "crossbeam-cli";
+  const c = await CrossbeamClient.login({
+    username: process.env.CROSSBEAM_USER!,
+    password: process.env.CROSSBEAM_PASS!,
+  });
+  const partners = await c.listPartners();
+  const overlap  = await c.getOverlap(partners[0].id);
+
+Important rules:
+- Never print or log the user's password.
+- Prefer the cached session — do NOT pass `--fresh-login` unless you see a
+  401/403 error.
+- For large result sets, use `--limit` and `--page` for pagination.
+- If the user asks for data the existing commands don't expose, use
+  `crossbeam raw GET <path>` to call internal endpoints directly.
+````
+
 ## CLI usage
 
 ```sh
@@ -138,68 +206,6 @@ import { clearSession } from "crossbeam-cli";
 clearSession();              // clear all
 clearSession("you@x.com");   // clear one user
 ```
-
----
-
-## How it works
-
-1. Logs in to `auth.crossbeam.com` with your username + password to get a session ticket.
-2. Exchanges the ticket via the standard authorize flow to obtain a `cb_session_id` cookie on `api.crossbeam.com`.
-3. Calls `https://api.crossbeam.com/v0.1/users/web-me` to discover your organization id.
-4. Subsequent calls send the session cookie + an `xbeam-organization` header.
-
-There is no third-party HTTP library — just `fetch`, a small cookie jar, and a redirect-following helper. Cloudflare/captcha challenges are detected and abort the run.
-
-## AI agent prompt
-
-`crossbeam-cli` is built for AI coding agents (Claude Code, Cursor, Cline, Aider, Codex, etc). Every command emits JSON with `--json`, the programmatic API returns plain objects, and the `crossbeam raw <METHOD> <path>` escape hatch lets an agent hit any endpoint it discovers.
-
-Drop the prompt below into Claude Code / Cursor / your agent of choice to give it everything it needs:
-
-````md
-You have access to a CLI called `crossbeam` (npm package: `crossbeam-cli`) that
-reads data from the user's Crossbeam account. Use it to answer questions about
-their partners, ecosystem, populations, account-mapping records, and overlaps.
-
-Setup (do this once per shell):
-- Install: `npm install -g crossbeam-cli`
-- Auth: ask the user for their Crossbeam email + password and export them as
-  CROSSBEAM_USER and CROSSBEAM_PASS. Sessions are cached for 6 hours at
-  ~/.crossbeam/session.json, so you only need credentials on the first run.
-
-Always pass `--json` so output is machine-readable. Pipe through `jq` to keep
-context small. Examples:
-
-  crossbeam me --json | jq '.user.email, .authorizations[0].organization.name'
-  crossbeam partners list --json | jq '.items[] | {id, name, domain}'
-  crossbeam populations list --json | jq '.items[] | {id, name, record_count}'
-  crossbeam overlap <partner-id> --json | jq '.items | length'
-  crossbeam account-mapping --our-segment customer --limit 100 --json
-  crossbeam report-data --partner 1234,5678 --type ecosystem --limit 200 --json
-  crossbeam raw GET /v0.1/team --json    # any internal endpoint
-
-Discovery:
-- `crossbeam endpoints --json` lists every command and its arguments.
-- `crossbeam --help` prints full CLI help.
-
-Programmatic use (TypeScript / Node):
-
-  import { CrossbeamClient } from "crossbeam-cli";
-  const c = await CrossbeamClient.login({
-    username: process.env.CROSSBEAM_USER!,
-    password: process.env.CROSSBEAM_PASS!,
-  });
-  const partners = await c.listPartners();
-  const overlap  = await c.getOverlap(partners[0].id);
-
-Important rules:
-- Never print or log the user's password.
-- Prefer the cached session — do NOT pass `--fresh-login` unless you see a
-  401/403 error.
-- For large result sets, use `--limit` and `--page` for pagination.
-- If the user asks for data the existing commands don't expose, use
-  `crossbeam raw GET <path>` to call internal endpoints directly.
-````
 
 ## Development
 
