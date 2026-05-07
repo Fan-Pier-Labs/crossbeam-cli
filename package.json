@@ -1,0 +1,59 @@
+{
+  "name": "crossbeam-cli",
+  "version": "0.1.0",
+  "description": "CLI and Node.js client for the Crossbeam internal API. Log in with your Crossbeam credentials and read partners, populations, overlaps, reports, and more.",
+  "keywords": [
+    "crossbeam",
+    "cli",
+    "partner",
+    "ecosystem",
+    "account-mapping",
+    "api"
+  ],
+  "license": "SEE LICENSE IN LICENSE",
+  "author": {
+    "name": "Ryan Hughes",
+    "email": "ryan@fanpierlabs.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Fan-Pier-Labs/crossbeam-cli.git"
+  },
+  "homepage": "https://github.com/Fan-Pier-Labs/crossbeam-cli#readme",
+  "bugs": {
+    "url": "https://github.com/Fan-Pier-Labs/crossbeam-cli/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "crossbeam": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && chmod +x dist/cli.js",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run build",
+    "clean": "rm -rf dist",
+    "start": "node dist/cli.js",
+    "dev": "tsc -p tsconfig.json --watch"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
+  }
+}

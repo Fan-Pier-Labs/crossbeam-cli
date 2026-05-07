@@ -1,0 +1,14 @@
+.claude/
+.playwright-cli/
+.playright-cli/
+.git/
+.github/
+.gitignore
+.DS_Store
+node_modules/
+*.log
+.env
+.env.local
+bun.lockb
+tsconfig.json
+tsconfig.tsbuildinfo

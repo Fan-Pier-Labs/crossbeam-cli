@@ -1,0 +1,166 @@
+# crossbeam-cli
+
+CLI and Node.js client for the [Crossbeam](https://www.crossbeam.com) internal API. Log in with your existing Crossbeam credentials and read your partners, populations, overlaps, reports, account-mapping data, and more — from your terminal or from Node.js code.
+
+> ⚠️ This package talks to Crossbeam's internal `api.crossbeam.com` endpoints (the same ones the Crossbeam web app uses). It is not affiliated with or endorsed by Crossbeam, Inc. Use it for your own organization's data only, and at your own risk.
+
+## Installation
+
+```sh
+npm install --save crossbeam-cli
+# or globally for the CLI binary:
+npm install --global crossbeam-cli
+```
+
+The CLI binary is named `crossbeam`.
+
+## License
+
+Source-available under the [Fan Pier Labs Source-Available License](./LICENSE). You may view the source and use the Software for personal, non-commercial, and educational purposes only. **Commercial use, hosted/SaaS offerings, redistribution, and competing products are prohibited without prior written permission from Fan Pier Labs.** For commercial licensing, contact ryan@fanpierlabs.com.
+
+---
+
+## CLI usage
+
+```sh
+crossbeam <command> [subcommand] [args] [options]
+```
+
+### Authentication
+
+Provide credentials by flag or environment variable. The first run does an Auth0 login and caches the resulting session at `~/.crossbeam/session.json` (mode `0600`) for 6 hours.
+
+```sh
+crossbeam me --user you@example.com --pass 'your-password'
+
+# or via env:
+export CROSSBEAM_USER=you@example.com
+export CROSSBEAM_PASS='your-password'
+crossbeam partners list
+```
+
+If `--pass` and `CROSSBEAM_PASS` are both missing, the CLI prompts for the password silently on a TTY.
+
+Flags:
+
+| Flag | Description |
+| --- | --- |
+| `--user`, `-u` | Crossbeam username |
+| `--pass`, `-p` | Crossbeam password |
+| `--org <id>` | Override organization id (defaults to your first authorized org) |
+| `--json` | Print raw JSON instead of a pretty table |
+| `--no-cache` | Don't read or write the session cache |
+| `--fresh-login` | Force a fresh Auth0 login this run |
+| `logout` | Forget cached session(s) |
+
+### Commands
+
+Run `crossbeam endpoints` for the full list. Highlights:
+
+```sh
+crossbeam me                                     # current user + org
+crossbeam team                                   # list org members
+crossbeam partners list                          # all partners with overlap counts
+crossbeam partners get <id|uuid>
+crossbeam partners users <id|uuid>
+crossbeam partners overlap-matrix <id|uuid>
+crossbeam populations list [--inactive]
+crossbeam reports                                # saved Account-Mapping views
+crossbeam lists                                  # user-saved lists
+crossbeam overlap <partner-id>
+crossbeam report-data --partner 1234 --type ecosystem --limit 100
+crossbeam account-mapping --our-segment customer --limit 100
+crossbeam search "<query>"
+crossbeam clearbit "<query>"
+crossbeam raw GET /v0.1/team                     # call any endpoint
+```
+
+---
+
+## Programmatic usage (Node.js)
+
+```ts
+import { CrossbeamClient } from "crossbeam-cli";
+
+const client = await CrossbeamClient.login({
+  username: process.env.CROSSBEAM_USER!,
+  password: process.env.CROSSBEAM_PASS!,
+  // org: "12345",       // optional: override organization id
+  // useCache: true,      // default: true. Reads/writes ~/.crossbeam/session.json
+});
+
+const me = await client.getMe();
+console.log(`Logged in as ${me.user?.email}`);
+
+const partners = await client.listPartners();
+for (const p of partners) {
+  console.log(`${p.id}\t${p.name}\t${p.domain ?? ""}`);
+}
+
+const overlap = await client.getOverlap(partners[0].id);
+console.log(`Overlap with ${partners[0].name}: ${overlap.items?.length ?? 0} rows`);
+```
+
+### `CrossbeamClient.login(options)`
+
+```ts
+type LoginOptions = {
+  username: string;
+  password: string;
+  org?: string;          // override organization id
+  useCache?: boolean;    // default true; caches at ~/.crossbeam/session.json
+  forceFreshLogin?: boolean;
+};
+```
+
+Returns a `CrossbeamClient` ready to use.
+
+### Selected client methods
+
+All methods return parsed JSON. See `src/client.ts` for the full surface.
+
+| Area | Methods |
+| --- | --- |
+| Identity | `getMe()`, `getTeam()`, `getRoles()`, `getPermissions()`, `getFeatureFlags()` |
+| Partners | `listPartners()`, `getPartner(id)`, `getPartnerUsers(id)`, `getPartnerTags(id)`, `getPartnerTeamAccess(id)`, `getPartnerSuggestions()`, `getOverlapCounts()`, `getPartnerFavorites()`, `getPendingShareRequests()` |
+| Populations | `listPopulations({ onlyInactive? })`, `getPopulationStats()`, `getPopulationRecordStats()`, `listPartnerPopulations()`, `listPartnerTags()` |
+| Reports | `listLists()`, `listReports()`, `listReportFolders()`, `getReportData(body, { page, limit })`, `getAccountMapping(opts)`, `getPartnerSources(body)` |
+| Sources | `listSources({ includeDeleted? })`, `getSource(id)`, `listFeeds()`, `getFeed(id)`, `listConnections()` |
+| Sharing | `getInboundShareRequests()`, `getOutboundShareRequests()`, `getIncomingShareRules()`, `getOutgoingShareRules()`, `getIncomingDataShares()`, `getOutgoingDataShares()`, `listSharePresets()` |
+| Overlaps | `getOverlap(partnerId)`, `getOverlapTotal(partnerId, populationIds?)`, `getOverlapMatrix(partnerId)` |
+| Misc | `discoverOrgs(query)`, `clearbitAutocomplete(query)`, `search(query)`, `listIntegrations()`, `listNotifications()`, `getNotificationSettings()`, `getAttribution(kind)`, `listFileUploads()`, `listFileUploadTables()`, `getMopOrganizations()`, `getMopPartnerships()` |
+| Escape hatch | `get<T>(path, query?)`, `post<T>(path, body?)` |
+
+### Session caching
+
+`CrossbeamClient.login()` caches cookies at `~/.crossbeam/session.json` (mode `0600`) for 6 hours, keyed by username. Set `useCache: false` to skip, or `forceFreshLogin: true` to bypass on this call only. To clear everything programmatically:
+
+```ts
+import { clearSession } from "crossbeam-cli";
+clearSession();              // clear all
+clearSession("you@x.com");   // clear one user
+```
+
+---
+
+## How it works
+
+1. Calls `https://auth.crossbeam.com/co/authenticate` with username/password (Auth0 cross-origin auth) to obtain a `login_ticket`.
+2. Exchanges the ticket via `/authorize` to get a `cb_session_id` cookie.
+3. Calls `https://api.crossbeam.com/v0.1/users/web-me` to discover your organization id.
+4. Subsequent calls send the cookie + an `xbeam-organization` header.
+
+There is no third-party HTTP library — just `fetch`, a small cookie jar, and a redirect-following helper. Cloudflare/captcha challenges are detected and abort the run.
+
+## Development
+
+```sh
+npm install
+npm run build
+node dist/cli.js me --user you@x.com --pass '...'
+npm pack --dry-run         # see what would ship
+```
+
+## Disclaimer
+
+This is an unofficial client. Crossbeam may change or block the underlying endpoints at any time. The maintainers are not responsible for breakage, account issues, or terms-of-service questions arising from your use of this package.
