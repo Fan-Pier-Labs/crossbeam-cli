@@ -10,7 +10,7 @@
     "account-mapping",
     "api"
   ],
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "BSD-4-Clause",
   "author": {
     "name": "Ryan Hughes",
     "email": "ryan@fanpierlabs.com"
@@ -39,7 +39,9 @@
     "dist",
     "src",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "NOTICE",
+    "ATTRIBUTION.md"
   ],
   "engines": {
     "node": ">=18"
