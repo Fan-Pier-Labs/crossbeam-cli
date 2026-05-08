@@ -29,20 +29,20 @@ The CLI binary is named `crossbeam`.
 
 ## How it works
 
-`crossbeam-cli` is a thin wrapper around Crossbeam's private HTTP API — the same endpoints the Crossbeam web app calls when you're signed in. There's no middleman service. When you run a command:
+`crossbeam-cli` is a thin wrapper around Crossbeam's private HTTP API — the same endpoints the Crossbeam web app calls when you're signed in. When you run a command:
 
 1. **You provide your own Crossbeam username and password** (via flag, env var, or interactive prompt).
-2. The package logs in directly from your machine to `auth.crossbeam.com`, gets a session cookie, and stores it locally at `~/.crossbeam/session.json` (mode `0600`, valid for 6 hours).
-3. Every API call goes directly from your machine to `api.crossbeam.com` over HTTPS, sending that session cookie. The data flows back to you.
+2. The package logs in to `auth.crossbeam.com`, gets a session cookie, and stores it at `~/.crossbeam/session.json` (mode `0600`, valid for 6 hours).
+3. Every API call goes directly to `api.crossbeam.com` over HTTPS with that cookie.
 
 **Your credentials and your data never leave your machine.** This package has:
 
-- No backend service of any kind. No proxy, no relay, no "phone home."
+- No backend, proxy, relay, or "phone home."
 - No telemetry, no analytics, no error reporting.
 - No third-party HTTP libraries — just Node's built-in `fetch`.
 - No remote configuration or auto-updates.
 
-You're talking straight to Crossbeam, exactly the same way your browser does. The full source is in [`src/`](./src) — read it, audit it, fork it.
+The full source is in [`src/`](./src) — read it, audit it, fork it.
 
 ## AI agent prompt
 
