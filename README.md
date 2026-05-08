@@ -102,7 +102,7 @@ crossbeam <command> [subcommand] [args] [options]
 
 ### Authentication
 
-Provide credentials by flag or environment variable. The first run logs in with your Crossbeam username + password and caches the resulting session at `~/.crossbeam/session.json` (mode `0600`) for 6 hours.
+Provide credentials by flag. First run logs in; subsequent runs reuse the cached session (see [How it works](#how-it-works)).
 
 ```sh
 crossbeam me --user you@example.com --pass 'your-password'
@@ -187,8 +187,6 @@ type LoginOptions = {
 };
 ```
 
-Returns a `CrossbeamClient` ready to use.
-
 ### Selected client methods
 
 All methods return parsed JSON. See `src/client.ts` for the full surface.
@@ -226,7 +224,7 @@ npm pack --dry-run         # see what would ship
 
 ## Disclaimer
 
-This is an unofficial client. Crossbeam may change or block the underlying endpoints at any time. The maintainers are not responsible for breakage, account issues, or terms-of-service questions arising from your use of this package.
+Unofficial client. Crossbeam may change or block these endpoints at any time. Use at your own risk.
 
 ## License
 
