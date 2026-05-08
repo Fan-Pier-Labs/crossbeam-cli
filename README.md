@@ -229,4 +229,10 @@ Unofficial client. Crossbeam may change or block these endpoints at any time. Us
 
 ## License
 
-Source-available under the [Fan Pier Labs Source-Available License](./LICENSE). You may view the source and use the Software for personal, non-commercial, and educational purposes only. For commercial licensing, contact ryan@fanpierlabs.com.
+[BSD 4-Clause License](./LICENSE). Free for any use — including commercial — provided the advertising clause is honored.
+
+> **Required attribution.** Any advertising material mentioning features or use of this software must display:
+>
+> *"This product includes software developed by Ryan Hughes (Fan Pier Labs, https://fanpierlabs.com)."*
+
+See [ATTRIBUTION.md](./ATTRIBUTION.md) for drop-in snippets (plain text, Markdown, HTML) and the full list of materials this applies to. A commercial license without the advertising clause is available — contact ryan@fanpierlabs.com.
