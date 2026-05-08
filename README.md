@@ -24,7 +24,7 @@ The CLI binary is named `crossbeam`.
 
 1. **You provide your own Crossbeam username and password** (via flag, env var, or interactive prompt).
 2. The package logs in directly from your machine to `auth.crossbeam.com`, gets a session cookie, and stores it locally at `~/.crossbeam/session.json` (mode `0600`, valid for 6 hours).
-3. Every API call goes directly from your machine to `api.crossbeam.com` over HTTPS, sending that session cookie. The data flows back into your terminal or your Node.js process.
+3. Every API call goes directly from your machine to `api.crossbeam.com` over HTTPS, sending that session cookie. The data flows back to you.
 
 **Your credentials and your data never leave your machine.** This package has:
 
@@ -37,7 +37,7 @@ You're talking straight to Crossbeam, exactly the same way your browser does. Th
 
 ## AI agent prompt
 
-`crossbeam-cli` is built for AI coding agents (Claude Code, Cursor, Cline, Aider, Codex, etc). Every command emits JSON with `--json`, the programmatic API returns plain objects, and the `crossbeam raw <METHOD> <path>` escape hatch lets an agent hit any endpoint it discovers.
+`crossbeam-cli` is built for AI coding agents (Claude Code, Cursor, Cline, Aider, Codex, etc). Every command emits JSON with `--json`, and the `crossbeam raw <METHOD> <path>` escape hatch lets an agent hit any endpoint it discovers.
 
 Drop the prompt below into Claude Code / Cursor / your agent of choice to give it everything it needs:
 
@@ -143,7 +143,7 @@ crossbeam raw GET /v0.1/team                     # call any endpoint
 
 ---
 
-## Programmatic usage (Node.js)
+## Programmatic usage
 
 ```ts
 import { CrossbeamClient } from "crossbeam-cli";
