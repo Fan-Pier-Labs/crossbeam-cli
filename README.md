@@ -6,6 +6,8 @@
 [![install size](https://packagephobia.com/badge?p=crossbeam-cli)](https://packagephobia.com/result?p=crossbeam-cli)
 [![TypeScript](https://img.shields.io/badge/TypeScript-included-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Bun](https://img.shields.io/badge/bun-compatible-fbf0df?logo=bun&logoColor=black)](https://bun.sh)
+[![speed](https://img.shields.io/static/v1?label=speed&message=fast&color=success)](#)
 
 CLI client for [Crossbeam](https://www.crossbeam.com). Log in with your existing Crossbeam credentials and read your partners, populations, overlaps, reports, account-mapping data, and more — from your terminal.
 
