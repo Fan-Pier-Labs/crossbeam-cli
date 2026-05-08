@@ -1,5 +1,13 @@
 # crossbeam-cli
 
+[![CI](https://github.com/Fan-Pier-Labs/crossbeam-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/Fan-Pier-Labs/crossbeam-cli/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/crossbeam-cli.svg)](https://www.npmjs.com/package/crossbeam-cli)
+[![npm downloads](https://img.shields.io/npm/dm/crossbeam-cli.svg)](https://www.npmjs.com/package/crossbeam-cli)
+[![install size](https://packagephobia.com/badge?p=crossbeam-cli)](https://packagephobia.com/result?p=crossbeam-cli)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/crossbeam-cli)](https://bundlephobia.com/package/crossbeam-cli)
+[![TypeScript](https://img.shields.io/badge/TypeScript-included-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/node/v/crossbeam-cli.svg)](https://nodejs.org/)
+
 CLI client for [Crossbeam](https://www.crossbeam.com). Log in with your existing Crossbeam credentials and read your partners, populations, overlaps, reports, account-mapping data, and more — from your terminal.
 
 **Free for any Crossbeam customer.** Crossbeam normally requires upgrading to a paid tier (Connector / Supernode) to access their public API. This package uses the same endpoints the Crossbeam web app itself uses, so anyone with a Crossbeam login — including users on the free plan — can pull their own data programmatically.
