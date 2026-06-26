@@ -1,9 +1,25 @@
 #!/usr/bin/env node
 import { stdin, stdout, env, argv } from "node:process";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { CrossbeamClient, type Partner } from "./client.js";
 import { clearSession, loadSession } from "./session.js";
 import { BotChallengeError } from "./http.js";
 import { AuthError } from "./auth.js";
+
+const PKG_VERSION = (() => {
+  try {
+    const here = dirname(fileURLToPath(import.meta.url));
+    const pkg = JSON.parse(readFileSync(join(here, "..", "package.json"), "utf8"));
+    return String(pkg.version ?? "0.0.0");
+  } catch {
+    return "0.0.0";
+  }
+})();
+
+const ATTRIBUTION =
+  "Built by Ryan Hughes (Fan Pier Labs) — https://fanpierlabs.com";
 
 // ─────────────────────────── arg parsing ───────────────────────────
 
@@ -16,6 +32,8 @@ const BOOLEAN_FLAGS = new Set([
   "json",
   "help",
   "h",
+  "version",
+  "v",
   "no-cache",
   "fresh-login",
   "inactive",
@@ -883,8 +901,15 @@ const commands: Cmd[] = [
 
 // ─────────────────────────── help ───────────────────────────
 
+function printVersion() {
+  console.log(`crossbeam-cli ${PKG_VERSION}`);
+  console.log(ATTRIBUTION);
+  console.log("https://github.com/Fan-Pier-Labs/crossbeam-cli");
+}
+
 function printHelp() {
-  console.log(`crossbeam — CLI for the Crossbeam internal API
+  console.log(`crossbeam-cli ${PKG_VERSION} — CLI client for Crossbeam
+${ATTRIBUTION}
 
 Usage:
   crossbeam <command> [subcommand] [args] [options]
@@ -917,6 +942,8 @@ Examples:
   crossbeam populations list --inactive
   crossbeam clearbit "Snowflake"
   crossbeam raw GET /v0.1/team
+
+${ATTRIBUTION}
 `);
 }
 
@@ -962,6 +989,10 @@ async function promptHidden(question: string): Promise<string> {
 async function main() {
   const args = parseArgs(argv.slice(2));
 
+  if (boolFlag(args, "version", "v")) {
+    printVersion();
+    return;
+  }
   if (boolFlag(args, "help", "h") || args.positional.length === 0) {
     printHelp();
     return;

@@ -6,13 +6,15 @@
 [![install size](https://packagephobia.com/badge?p=crossbeam-cli)](https://packagephobia.com/result?p=crossbeam-cli)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/crossbeam-cli)](https://bundlephobia.com/package/crossbeam-cli)
 [![TypeScript](https://img.shields.io/badge/TypeScript-included-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/node/v/crossbeam-cli.svg)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Bun](https://img.shields.io/badge/bun-compatible-fbf0df?logo=bun&logoColor=black)](https://bun.sh)
+[![speed](https://img.shields.io/static/v1?label=speed&message=fast&color=success)](#)
 
 CLI client for [Crossbeam](https://www.crossbeam.com). Log in with your existing Crossbeam credentials and read your partners, populations, overlaps, reports, account-mapping data, and more — from your terminal.
 
 **Free for any Crossbeam customer.** Crossbeam normally requires upgrading to a paid tier (Connector / Supernode) to access their public API. This package uses the same endpoints the Crossbeam web app itself uses, so anyone with a Crossbeam login — including users on the free plan — can pull their own data programmatically.
 
-**Great for AI agents.** Every command supports `--json`, so you can plug your partner ecosystem data into Claude Code, Cursor, or any agent framework. See the [AI agent prompt](#ai-agent-prompt) below.
+**Great for AI agents.** Plug your partner ecosystem data into Claude Code, Cursor, or any agent framework. See the [AI agent prompt](#ai-agent-prompt) below.
 
 > ⚠️ This package talks to Crossbeam's internal `api.crossbeam.com` endpoints (the same ones the Crossbeam web app uses). It is not affiliated with or endorsed by Crossbeam, Inc. Use at your own risk.
 
@@ -28,20 +30,20 @@ The CLI binary is named `crossbeam`.
 
 ## How it works
 
-`crossbeam-cli` is a thin wrapper around Crossbeam's private HTTP API — the same endpoints the Crossbeam web app calls when you're signed in. There's no middleman service. When you run a command:
+`crossbeam-cli` is a thin wrapper around Crossbeam's private HTTP API — the same endpoints the Crossbeam web app calls when you're signed in. When you run a command:
 
 1. **You provide your own Crossbeam username and password** (via flag, env var, or interactive prompt).
-2. The package logs in directly from your machine to `auth.crossbeam.com`, gets a session cookie, and stores it locally at `~/.crossbeam/session.json` (mode `0600`, valid for 6 hours).
-3. Every API call goes directly from your machine to `api.crossbeam.com` over HTTPS, sending that session cookie. The data flows back to you.
+2. The package logs in to `auth.crossbeam.com`, gets a session cookie, and stores it at `~/.crossbeam/session.json` (mode `0600`, valid for 6 hours).
+3. Every API call goes directly to `api.crossbeam.com` over HTTPS with that cookie.
 
 **Your credentials and your data never leave your machine.** This package has:
 
-- No backend service of any kind. No proxy, no relay, no "phone home."
+- No backend, proxy, relay, or "phone home."
 - No telemetry, no analytics, no error reporting.
 - No third-party HTTP libraries — just Node's built-in `fetch`.
 - No remote configuration or auto-updates.
 
-You're talking straight to Crossbeam, exactly the same way your browser does. The full source is in [`src/`](./src) — read it, audit it, fork it.
+The full source is in [`src/`](./src) — read it, audit it, fork it.
 
 ## AI agent prompt
 
@@ -102,7 +104,7 @@ crossbeam <command> [subcommand] [args] [options]
 
 ### Authentication
 
-Provide credentials by flag or environment variable. The first run logs in with your Crossbeam username + password and caches the resulting session at `~/.crossbeam/session.json` (mode `0600`) for 6 hours.
+Provide credentials by flag. First run logs in; subsequent runs reuse the cached session (see [How it works](#how-it-works)).
 
 ```sh
 crossbeam me --user you@example.com --pass 'your-password'
@@ -187,8 +189,6 @@ type LoginOptions = {
 };
 ```
 
-Returns a `CrossbeamClient` ready to use.
-
 ### Selected client methods
 
 All methods return parsed JSON. See `src/client.ts` for the full surface.
@@ -226,8 +226,14 @@ npm pack --dry-run         # see what would ship
 
 ## Disclaimer
 
-This is an unofficial client. Crossbeam may change or block the underlying endpoints at any time. The maintainers are not responsible for breakage, account issues, or terms-of-service questions arising from your use of this package.
+Unofficial client. Crossbeam may change or block these endpoints at any time. Use at your own risk.
 
 ## License
 
-Source-available under the [Fan Pier Labs Source-Available License](./LICENSE). You may view the source and use the Software for personal, non-commercial, and educational purposes only. For commercial licensing, contact ryan@fanpierlabs.com.
+[BSD 4-Clause License](./LICENSE). Free for any use — including commercial — provided the advertising clause is honored.
+
+> **Required attribution.** Any advertising material mentioning features or use of this software must display:
+>
+> *"This product includes software developed by Ryan Hughes (Fan Pier Labs, https://fanpierlabs.com)."*
+
+See [ATTRIBUTION.md](./ATTRIBUTION.md) for drop-in snippets (plain text, Markdown, HTML) and the full list of materials this applies to. A commercial license without the advertising clause is available — contact ryan@fanpierlabs.com.
