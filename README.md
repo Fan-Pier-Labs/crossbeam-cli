@@ -28,6 +28,56 @@ npm install --global crossbeam-cli
 
 The CLI binary is named `crossbeam`.
 
+## Claude Desktop (MCP bundle)
+
+The same Crossbeam API is also available to [Claude Desktop](https://claude.ai/download) as an
+[MCP](https://modelcontextprotocol.io) server, packaged as a one-click **`.mcpb` bundle**.
+
+### ⬇️ [Download crossbeam.mcpb](https://github.com/Fan-Pier-Labs/crossbeam-cli/releases/latest/download/crossbeam.mcpb)
+
+**Install:**
+
+1. [**Download `crossbeam.mcpb`**](https://github.com/Fan-Pier-Labs/crossbeam-cli/releases/latest/download/crossbeam.mcpb)
+   (always the latest version).
+2. In Claude Desktop, open **Settings → Extensions** and drag `crossbeam.mcpb` onto the window
+   (or **Install Extension → choose file**).
+3. When prompted, enter your **Crossbeam email** and **password** (and optionally an organization id).
+   Your password is stored in your OS keychain by Claude Desktop and is passed to the server as an
+   environment variable — it is never sent anywhere except `auth.crossbeam.com` at login.
+
+Claude can then call read tools like `list_partners`, `get_account_mapping`, `get_overlap`,
+`get_report_data`, `search`, and a `get` escape hatch for any other endpoint. The full tool list is
+declared in [`manifest.json`](./manifest.json).
+
+> The MCP server is read-only and uses the exact same login + session caching as the CLI
+> (`~/.crossbeam/session.json`). Credentials and data stay on your machine.
+
+**Use it from other MCP clients (Claude Code, Cursor, etc.)** without the bundle by running the server
+directly over stdio after installing the package:
+
+```jsonc
+// e.g. Claude Code: claude mcp add, or any client's mcpServers config
+{
+  "command": "npx",
+  "args": ["-y", "crossbeam-cli", "crossbeam-mcp"],
+  "env": {
+    "CROSSBEAM_USERNAME": "you@example.com",
+    "CROSSBEAM_PASSWORD": "your-password",
+    "CROSSBEAM_ORG": ""
+  }
+}
+```
+
+**Build the bundle yourself:**
+
+```sh
+npm install
+npm run pack:mcpb   # → crossbeam.mcpb
+```
+
+This bundles `src/mcp.ts` and its dependencies into a single self-contained file under `build/mcpb/`
+and packs it with [`@anthropic-ai/mcpb`](https://github.com/anthropics/mcpb).
+
 ## How it works
 
 `crossbeam-cli` is a thin wrapper around Crossbeam's private HTTP API — the same endpoints the Crossbeam web app calls when you're signed in. When you run a command:

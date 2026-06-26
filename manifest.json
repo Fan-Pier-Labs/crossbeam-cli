@@ -1,0 +1,99 @@
+{
+  "manifest_version": "0.2",
+  "name": "crossbeam",
+  "display_name": "Crossbeam",
+  "version": "0.1.0",
+  "description": "Query the Crossbeam internal API: partners, populations, overlaps, reports, account mapping, sharing, and more.",
+  "long_description": "Connects Claude to your Crossbeam account using your Crossbeam login. Once configured with your email and password, Claude can read partners, populations, overlap data, account-mapping rows, reports, sources, integrations, sharing rules, and notifications. Authentication uses the same Auth0 cross-origin flow as the Crossbeam web app; the session is cached locally under ~/.crossbeam for the duration of its validity. This bundle is read-only.",
+  "author": {
+    "name": "Ryan Hughes",
+    "email": "ryan@fanpierlabs.com"
+  },
+  "homepage": "https://github.com/Fan-Pier-Labs/crossbeam-cli#readme",
+  "documentation": "https://github.com/Fan-Pier-Labs/crossbeam-cli#readme",
+  "support": "https://github.com/Fan-Pier-Labs/crossbeam-cli/issues",
+  "license": "BSD-4-Clause",
+  "keywords": ["crossbeam", "partner", "ecosystem", "account-mapping", "api"],
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/index.js"],
+      "env": {
+        "CROSSBEAM_USERNAME": "${user_config.username}",
+        "CROSSBEAM_PASSWORD": "${user_config.password}",
+        "CROSSBEAM_ORG": "${user_config.org}"
+      }
+    }
+  },
+  "user_config": {
+    "username": {
+      "type": "string",
+      "title": "Crossbeam email",
+      "description": "The email address you use to log in to Crossbeam.",
+      "required": true
+    },
+    "password": {
+      "type": "string",
+      "title": "Crossbeam password",
+      "description": "Your Crossbeam password. Stored in your OS keychain by Claude Desktop.",
+      "sensitive": true,
+      "required": true
+    },
+    "org": {
+      "type": "string",
+      "title": "Organization ID (optional)",
+      "description": "Organization id to scope requests to. Leave blank to use your default organization.",
+      "required": false
+    }
+  },
+  "tools": [
+    { "name": "get_me", "description": "Current user, organizations, and roles." },
+    { "name": "get_team", "description": "Members of the current organization." },
+    { "name": "get_roles", "description": "Roles defined in the organization." },
+    { "name": "get_permissions", "description": "Current user's permissions." },
+    { "name": "get_feature_flags", "description": "Organization feature flags." },
+    { "name": "list_partners", "description": "All partner organizations." },
+    { "name": "get_partner", "description": "A single partner by id or uuid." },
+    { "name": "get_partner_users", "description": "Users at a partner organization." },
+    { "name": "get_partner_tags", "description": "Tags applied to a partner." },
+    { "name": "get_partner_suggestions", "description": "Suggested partners." },
+    { "name": "get_overlap_counts", "description": "Global overlap counts across partners." },
+    { "name": "get_partner_favorites", "description": "The user's favorite partners." },
+    { "name": "list_partner_tags", "description": "All partner tags." },
+    { "name": "list_partner_populations", "description": "Partner populations." },
+    { "name": "get_overlap_matrix", "description": "Overlap matrix for a partner." },
+    { "name": "list_populations", "description": "Populations for the org." },
+    { "name": "get_population_stats", "description": "Population stats." },
+    { "name": "get_population_record_stats", "description": "Per-population record counts." },
+    { "name": "list_lists", "description": "Saved Lists." },
+    { "name": "list_reports", "description": "Saved Reports." },
+    { "name": "list_report_folders", "description": "Report folders." },
+    { "name": "get_report_data", "description": "Record-level overlap rows behind a List/Account-Mapping view." },
+    { "name": "get_account_mapping", "description": "Account-mapping rows across every partner." },
+    { "name": "list_sources", "description": "Data sources." },
+    { "name": "get_source", "description": "A single source by id." },
+    { "name": "list_feeds", "description": "Feeds." },
+    { "name": "list_connections", "description": "Data connections." },
+    { "name": "list_integrations", "description": "Integrations." },
+    { "name": "get_pending_share_requests", "description": "Inbound and outbound pending share requests." },
+    { "name": "get_incoming_share_rules", "description": "Incoming sharing rules." },
+    { "name": "get_outgoing_share_rules", "description": "Outgoing sharing rules." },
+    { "name": "list_share_presets", "description": "Data-share presets." },
+    { "name": "get_proposals_sent", "description": "Partnership proposals sent." },
+    { "name": "get_proposals_received", "description": "Partnership proposals received." },
+    { "name": "get_overlap", "description": "Overlapping accounts with a single partner." },
+    { "name": "get_overlap_total", "description": "Total overlap count with a partner." },
+    { "name": "list_notifications", "description": "Notifications." },
+    { "name": "get_attribution", "description": "Partner attribution data." },
+    { "name": "search", "description": "Search Crossbeam." },
+    { "name": "discover_orgs", "description": "Search discoverable Crossbeam organizations." },
+    { "name": "get", "description": "Low-level authenticated GET escape hatch." }
+  ],
+  "compatibility": {
+    "runtimes": {
+      "node": ">=18"
+    }
+  }
+}

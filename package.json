@@ -33,7 +33,8 @@
     }
   },
   "bin": {
-    "crossbeam": "./dist/cli.js"
+    "crossbeam": "./dist/cli.js",
+    "crossbeam-mcp": "./dist/mcp.js"
   },
   "files": [
     "dist",
@@ -47,15 +48,24 @@
     "node": ">=18"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && chmod +x dist/cli.js",
+    "build": "tsc -p tsconfig.json && chmod +x dist/cli.js dist/mcp.js",
     "prepare": "npm run build",
     "prepublishOnly": "npm run build",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist build *.mcpb",
     "start": "node dist/cli.js",
-    "dev": "tsc -p tsconfig.json --watch"
+    "mcp": "node dist/mcp.js",
+    "dev": "tsc -p tsconfig.json --watch",
+    "bundle:mcpb": "node scripts/build-mcpb.mjs",
+    "pack:mcpb": "npm run bundle:mcpb && mcpb pack build/mcpb crossbeam.mcpb"
   },
   "devDependencies": {
+    "@anthropic-ai/mcpb": "^2.1.2",
     "@types/node": "^20.0.0",
+    "esbuild": "^0.28.1",
     "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.4.3"
   }
 }
