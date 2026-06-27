@@ -12,6 +12,8 @@
 
 CLI client for [Crossbeam](https://www.crossbeam.com). Log in with your existing Crossbeam credentials and read your partners, populations, overlaps, reports, account-mapping data, and more — from your terminal.
 
+🌐 **[Website & one-click Claude Desktop extension →](https://fan-pier-labs.github.io/crossbeam-cli/)**
+
 **Free for any Crossbeam customer.** Crossbeam normally requires upgrading to a paid tier (Connector / Supernode) to access their public API. This package uses the same endpoints the Crossbeam web app itself uses, so anyone with a Crossbeam login — including users on the free plan — can pull their own data programmatically.
 
 **Great for AI agents.** Plug your partner ecosystem data into Claude Code, Cursor, or any agent framework. See the [AI agent prompt](#ai-agent-prompt) below.
