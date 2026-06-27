@@ -6,7 +6,7 @@
   "description": "Query the Crossbeam internal API: partners, populations, overlaps, reports, account mapping, sharing, and more.",
   "long_description": "Connects Claude to your Crossbeam account using your Crossbeam login. Once configured with your email and password, Claude can read partners, populations, overlap data, account-mapping rows, reports, sources, integrations, sharing rules, and notifications. Authentication uses the same Auth0 cross-origin flow as the Crossbeam web app; the session is cached locally under ~/.crossbeam for the duration of its validity. This bundle is read-only.",
   "author": {
-    "name": "Ryan Hughes",
+    "name": "Ryan Hughes through Fan Pier Labs",
     "email": "ryan@fanpierlabs.com"
   },
   "homepage": "https://github.com/Fan-Pier-Labs/crossbeam-cli#readme",
