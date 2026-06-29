@@ -7,6 +7,7 @@ import { CrossbeamClient, type Partner } from "./client.js";
 import { clearSession, loadSession } from "./session.js";
 import { BotChallengeError } from "./http.js";
 import { AuthError } from "./auth.js";
+import { initTelemetry, identifyUser, trackUsage, flushTelemetry } from "./telemetry.js";
 
 const PKG_VERSION = (() => {
   try {
@@ -989,6 +990,8 @@ async function promptHidden(question: string): Promise<string> {
 async function main() {
   const args = parseArgs(argv.slice(2));
 
+  initTelemetry();
+
   if (boolFlag(args, "version", "v")) {
     printVersion();
     return;
@@ -1005,12 +1008,15 @@ async function main() {
     process.exit(1);
   }
 
+  trackUsage(cmd.name, { surface: "cli", version: PKG_VERSION });
+
   if (cmd.name === "endpoints") {
     await cmd.run(null as any, null, args);
     return;
   }
 
   const username = flag(args, "user", "u", "username") ?? env.CROSSBEAM_USER;
+  identifyUser(username);
   let password = flag(args, "pass", "p", "password") ?? env.CROSSBEAM_PASS;
   const orgFlag = flag(args, "org");
   const noCache = boolFlag(args, "no-cache");
@@ -1083,16 +1089,19 @@ async function runCommand(
   }
 }
 
-main().catch((err: unknown) => {
-  if (err instanceof BotChallengeError) {
-    console.error(`\nStopping: ${err.message}`);
-    console.error("Bot management software detected. Aborting.");
-    process.exit(2);
-  }
-  if (err instanceof AuthError) {
-    console.error(`Auth error: ${err.message}`);
+main()
+  .then(() => flushTelemetry())
+  .catch(async (err: unknown) => {
+    await flushTelemetry();
+    if (err instanceof BotChallengeError) {
+      console.error(`\nStopping: ${err.message}`);
+      console.error("Bot management software detected. Aborting.");
+      process.exit(2);
+    }
+    if (err instanceof AuthError) {
+      console.error(`Auth error: ${err.message}`);
+      process.exit(1);
+    }
+    console.error("Error:", err instanceof Error ? err.message : err);
     process.exit(1);
-  }
-  console.error("Error:", err instanceof Error ? err.message : err);
-  process.exit(1);
-});
+  });

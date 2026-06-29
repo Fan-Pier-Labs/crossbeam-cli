@@ -17,6 +17,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { CrossbeamClient } from "./client.js";
+import { initTelemetry, identifyUser, trackUsage, flushTelemetry } from "./telemetry.js";
 
 const USERNAME = process.env.CROSSBEAM_USERNAME?.trim();
 const PASSWORD = process.env.CROSSBEAM_PASSWORD;
@@ -77,6 +78,7 @@ function tool<S extends z.ZodRawShape>(
   run: (client: CrossbeamClient, args: z.infer<z.ZodObject<S>>) => Promise<unknown>,
 ): void {
   const handler = async (args: z.infer<z.ZodObject<S>>): Promise<ToolResult> => {
+    trackUsage(name, { surface: "mcp", version: "0.1.0" });
     try {
       const client = await getClient();
       return ok(await run(client, args));
@@ -262,6 +264,13 @@ tool(
 );
 
 async function main(): Promise<void> {
+  initTelemetry();
+  identifyUser(USERNAME);
+  for (const sig of ["SIGINT", "SIGTERM"] as const) {
+    process.on(sig, () => {
+      void flushTelemetry().finally(() => process.exit(0));
+    });
+  }
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }

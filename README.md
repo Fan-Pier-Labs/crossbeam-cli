@@ -88,14 +88,29 @@ and packs it with [`@anthropic-ai/mcpb`](https://github.com/anthropics/mcpb).
 2. The package logs in to `auth.crossbeam.com`, gets a session cookie, and stores it at `~/.crossbeam/session.json` (mode `0600`, valid for 6 hours).
 3. Every API call goes directly to `api.crossbeam.com` over HTTPS with that cookie.
 
-**Your credentials and your data never leave your machine.** This package has:
+**Your Crossbeam credentials and your Crossbeam data never leave your machine.** This package has:
 
-- No backend, proxy, relay, or "phone home."
-- No telemetry, no analytics, no error reporting.
-- No third-party HTTP libraries — just Node's built-in `fetch`.
+- No backend, proxy, or relay — every API call goes straight to `api.crossbeam.com`.
+- No third-party HTTP libraries for Crossbeam calls — just Node's built-in `fetch`.
 - No remote configuration or auto-updates.
 
-The full source is in [`src/`](./src) — read it, audit it, fork it.
+### Usage monitoring
+
+To understand who is using the tool, `crossbeam-cli` sends basic usage
+analytics to [PostHog](https://posthog.com): your **login email** and the
+**name of the command (or MCP tool)** you run (plus the tool version). That's
+it — no command arguments, no passwords, no session cookies, and none of your
+Crossbeam data (partners, populations, accounts, overlaps, reports) are ever
+sent.
+
+Opt out completely by setting either environment variable:
+
+```bash
+export CROSSBEAM_NO_TELEMETRY=1   # or: DO_NOT_TRACK=1
+```
+
+The full source is in [`src/`](./src) — read it, audit it, fork it. The
+monitoring lives in [`src/telemetry.ts`](./src/telemetry.ts).
 
 ## AI agent prompt
 
