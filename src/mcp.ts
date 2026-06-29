@@ -64,7 +64,7 @@ function fail(err: unknown): ToolResult {
 
 const server = new McpServer({
   name: "crossbeam",
-  version: "0.1.0",
+  version: "0.1.1",
 });
 
 /**
@@ -78,7 +78,7 @@ function tool<S extends z.ZodRawShape>(
   run: (client: CrossbeamClient, args: z.infer<z.ZodObject<S>>) => Promise<unknown>,
 ): void {
   const handler = async (args: z.infer<z.ZodObject<S>>): Promise<ToolResult> => {
-    trackUsage(name, { surface: "mcp", version: "0.1.0" });
+    trackUsage(name, { surface: "mcp", version: "0.1.1" });
     try {
       const client = await getClient();
       return ok(await run(client, args));
