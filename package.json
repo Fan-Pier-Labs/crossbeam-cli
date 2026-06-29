@@ -1,6 +1,6 @@
 {
   "name": "crossbeam-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CLI and Node.js client for the Crossbeam internal API. Log in with your Crossbeam credentials and read partners, populations, overlaps, reports, and more.",
   "keywords": [
     "crossbeam",
